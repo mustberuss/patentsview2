@@ -1,34 +1,22 @@
 #' @title Queries PatentsView API by CPC
 #'
-#' @description This function submits requests to the PatentsView API to return information on patents by CPC code. It calls both pv_post() and clean_patents().
+#' @description This function submits requests to the PatentsView API to return information on patent applications by CPC code. It calls both pv_post() and clean_patents().
 #'
 #' @param cpc
 #'
-#' @return a data frame of 27 fields
+#' @return a data frame of 38 fields
 #'
-#' @examples patents_view(cpc="G16H")
+#' @examples patents_view(cpc="G16H", from="2023-01-01")
 #'
 #' @export patents_view
 
 ########################################
 ########### patents_view() #############
 ########################################
-patents_view <- function(cpc,from) {
-  # initialize list
-  from <- from
-  results <- list()
-  results[[1]] <- pv_post(page=1,start_date=from)
-  # figure how how many more pages of results there are
-  names(results[[1]])[[3]] <- "total"
-  # rename this from patents/assignees to "total" for math reasons
-  pgs <- ceiling(results[[1]]$total/results[[1]]$count)
-  if (pgs>1) { # loop through remaining pages, if there's more than 1
-    for (i in c(2:pgs)) {
-      results[[i]] <- pv_post(page=i,start_date=from)
-    }
-    return(clean_patents(results))
-  }
-  else {
-    return(clean_patents(results))
-  }
+patents_view <- function(cpc,from="2000-01-01") {
+
+  results <- pv_post(start_date = from, cpc = cpc)
+  return(clean_patents(results))
+
 }
+
