@@ -1,18 +1,21 @@
 Package: patentsview2
 Type: Package
 Title: Easy CPC-Based Queries of the PatentsView API
-Version: 0.2.0
+Version: 1.0.0
 Author: Nate Apathy
 Maintainer: Nate Apathy <nate.apathy@gmail.com>
-Description: This package contains functions that make it easy to query the PatentsView API by CPC.
-    The main function, patents_view(cpc="CPC#"), pulls a fixed set of fields for patents with a given CPC.
-    Patents are only pulled if they have an application date after or on January 1, 2000.
-    Patents are only pulled if the applicant is US-based.
-    The function creates a flat file of patent information including:
-    Patent number, title, abstract, granted date, inventor and assignee information, and other CPCs assigned
+Description: Provides a function that make it easy to query the 'PatentsView' API by CPC.
+    Contains two data frames of CPC data.
 License: CC BY-SA
 Encoding: UTF-8
 LazyData: true
-Depends: 
-  tidyverse,httr,jsonlite,lubridate
-RoxygenNote: 7.3.1
+LazyDataCompression: xz
+Depends:
+    R (>= 3.5.0)
+RoxygenNote: 7.3.2
+Imports: 
+    dplyr,
+    magrittr,
+    patentsview (>= 1.0.0)
+Config/Needs/website: tidyverse, stringr, devtools, tidyr
+Roxygen: list(markdown = TRUE)
