@@ -4,18 +4,18 @@
 \alias{patents_view}
 \title{Queries PatentsView API by CPC}
 \usage{
-patents_view(cpc, from)
+patents_view(cpc, from = "2000-01-01")
 }
 \arguments{
 \item{cpc}{}
 }
 \value{
-a data frame of 27 fields
+a data frame of 38 fields
 }
 \description{
-This function submits requests to the PatentsView API to return information on patents by CPC code. It calls both pv_post() and clean_patents().
+This function submits requests to the PatentsView API to return information on patent applications by CPC code. It calls both pv_post() and clean_patents().
 }
 \examples{
-patents_view(cpc="G16H")
+patents_view(cpc="G16H", from="2023-01-01")
 
 }
