@@ -7,33 +7,63 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   eval = FALSE,
   comment = "#>",
-  out.width = "100%"
+  out.width = "100%",
+  tidy = "styler"
 )
 library(knitr)
 library(patentsview2)
 library(tidyverse)
-library(jsonlite)
-library(httr)
+library(styler)
 data("cpc_subclasses")
 ```
 
 # patentsview2
 
-`patentsview2` is a simple set of functions to query the [Patents endpoint](https://api.patentsview.org/patent.html) of the [PatentsView API](https://www.patentsview.org/) using [CPC Subclass](https://en.wikipedia.org/wiki/Cooperative_Patent_Classification) identifiers (e.g. [G16H for medical informatics](https://www.uspto.gov/web/patents/classification/cpc/html/cpc-G16H.html#G16H)). It is complementary to, but not integrated with, the `patentsview` package [available on CRAN](https://docs.ropensci.org/patentsview/index.html).
+`patentsview2` is a simple set of functions to query the [Patent endpoint](https://search.patentsview.org/docs/docs/Search%20API/EndpointDictionary/#patent) of the [PatentsView API](https://patentsview.org/) using [CPC Subclass](https://en.wikipedia.org/wiki/Cooperative_Patent_Classification) identifiers (e.g. [G16H for medical informatics](https://www.uspto.gov/web/patents/classification/cpc/html/cpc-G16H.html#G16H)).
+
+As promised, this package was reworked to use the new version of the
+Patentsview API (renamed the PatentSearch API, as
+ announced [here](https://search.patentsview.org/docs/#naming-update)).
+We're also using the [updated patentview R package](https://mustberuss.github.io/patentsview/) though it's not on 
+CRAN yet.  
 
 # introduction
 
-Patents and patent applications are a valuable measure of innovation within countries, sub-national geographies (e.g. states or cities), industries, and firms. Numerous patent databases exist, including [PATSTAT from the EPO](https://data.epo.org/expert-services/index.html), [NBER](https://www.nber.org/research/data/us-patents), [Google Patents](https://patents.google.com/), [OECD Patent Microdata](http://www.oecd.org/sti/intellectual-property-statistics-and-analysis.htm), [the USPTO](https://www.uspto.gov/patents-application-process/search-patents), and [others](https://iii.pubpub.org/datasets). These databases can be unweildy, so the USPTO created [PatentsView](https://www.patentsview.org/) as a user-friendly query portal for data about individual patents. They also implemented several API endpoints that can be queried directly. Despite its public availability and documentation, the PatentsView API isn't *that* easy to use. So to collect data about patents across different patent types, classified by Cooperative Patent Classification (CPC) subclasses, I wrote a few helper functions. Hope they're useful.
+Patents and patent applications are a valuable measure of innovation within countries, sub-national geographies (e.g. states or cities), industries, and firms. Numerous patent databases exist, including [PATSTAT from the EPO](https://data.epo.org/expert-services/index.html), [NBER](https://www.nber.org/research/data/us-patents), [Google Patents](https://patents.google.com/), [OECD Patent Microdata](https://www.oecd.org/sti/intellectual-property-statistics-and-analysis.htm), [the USPTO](https://www.uspto.gov/patents/search), and [others](https://iii.pubpub.org/datasets). These databases can be unweildy, so the USPTO created [PatentsView](https://patentsview.org/home) as a user-friendly query portal for data about individual patents. They also implemented several API endpoints that can be queried directly. Despite its public availability and documentation, the PatentsView API isn't *that* easy to use. So to collect data about patents across different patent types, classified by Cooperative Patent Classification (CPC) subclasses, I wrote a few helper functions. Hope they're useful.
+
+# installation steps
+
+1. API team now requires an API key so you'll need to 
+[request one](https://patentsview-support.atlassian.net/servicedesk/customer/portals) before any of this will work.
+The new version of the patentsview R package looks for its value in the environmental
+variable PATENTSVIEW_API_KEY.  Please be careful when posting scripts to not include the value of your API key.
+
+2. Install the new version of the Patentsview R package from r-universe
+    ```{r eval = FALSE}
+    install.packages("patentsview", repos = c("https://mustberuss.r-universe.dev"))
+    ```
+
+3. Install the dev version of this package, patentsview2, from github
+    ```{r eval = FALSE}
+    if (!"devtools" %in% rownames(installed.packages())) {
+      install.packages("devtools")
+    }
+
+    devtools::install_github("nateapathy/patentsview2")
+    ```
 
 # the `patents_view()` function
 
-`patentsview2::patents_view()` is the primary function. This function calls two other functions, `pv_post()` and `clean_patents()`. This function has a single argument, `cpc`, which takes a string consisting of any of the  4-character CPC subclasses available in PatentsView. By default, the function returns all patent applications with the defined classification since Jan 1, 2000 to the USPTO by US-based assignees.
+`patentsview2::patents_view()` is the primary function. This function calls two other functions, `pv_post()` and `clean_patents()`. This function has a single argument, `cpc`, which takes a string consisting of any of the  4-character CPC subclasses available in PatentsView. By default, the function returns all patent applications with the defined classification since Jan 1, 2001 to the USPTO by US-based assignees.
+The earliest patent application in the database is 200100000012
 
 ```{r}
-patentsview2::patents_view(cpc="F03B")
+library(patentsview2)
+
+patents_view(cpc="F03B")
 ```
 
-This returns a data frame of patent application observations and 27 fields of information about the patent as well as the first named inventor and assignee.
+This returns a data frame of patent application observations and 30 fields of information about the patent as well as the inventors and assignees.
 
 ## `pv_post()` and `clean_patents()`
 
@@ -65,18 +95,16 @@ names(random_cpcs) <- cpc_samp
 ```{r, eval=T}
 # CPC Subclass B62K: Unicycles
 cpc_subclasses %>% filter(cpc_subclass=="B62K")
-b62k <- patentsview2::patents_view(cpc="B62K")
+b62k <- patents_view(cpc="B62K")
 dim(b62k) 
-# 1,844 patent applications since Jan 1 2000
+# patent applications since Jan 1 2000
 
 # get number of unique patient numbers
 # remember, each observation is an APPLICATION not a patent
 unique(b62k$patent_number) %>% length() 
-# 1,811 unqiue patent numbers
 
-# how many unique assignees?
+# how many unique first assignees?
 unique(b62k$assignee_organization) %>% length() 
-# 454 unqiue assignees
 
 # what other fields do we have?
 colnames(b62k)
@@ -91,4 +119,60 @@ b62k %>%
          cumulative_pct=cumsum(pct)) %>%
   top_n(10,n) %>% kable()
 ```
+
+And now that we are using the patentsview R package, we can do other interesting
+things like figuring out which of the applications in B62K have become patents.
+This can potentially change every time we run this query as more and more
+patent applications become issued patents and as new applications are classified
+with a subclass of B62K.
+
+(Functions to do the post and clean below could be added to this package!)
+
+```{r, eval=T}
+  # Granted patent data is available from the API for 1976 onward,
+  # as it was in the original version of the API.  With the new
+  # version of the API, application data is also available for 2001 onward.  
+
+  # Here we'll make a query to the new publication endpoint with functionally 
+  # the same parameters as pv_post() makes to the patent endpoint
+  application_query <- patentsview::with_qfuns(
+    and(
+      gte(publication_date = "2001-01-01"),
+      eq(cpc_current.cpc_subclass_id = "B62K"),
+      eq(assignees.assignee_country = "US")
+    )
+  )
+
+  fields_to_return <- c("assignees", "inventors", "cpc_at_issue")
+  patent_applications <- patentsview::search_pv(application_query, endpoint = "publication", fields = fields_to_return, all_pages = TRUE)
+  nrow(patent_applications$data$publications)
+  unnested <- patentsview::unnest_pv_data(patent_applications$data)
+  unnested
+
+  # The new version of the API does not have publication_firstnamed_inventor_city
+  # or publication_firstnamed_inventor_state so we'll getting them from
+  # the first inventor (inventor_sequence of zero)
+
+  # document_number is a string in inventors and numeric in publications
+  # first inventor: min(unnested[["inventors"]]$inventor_sequence) is 0
+  first_inventors <- unnested[["inventors"]] %>%
+    dplyr::filter(inventor_sequence == 0) %>%
+    dplyr::mutate(inv_city_state = paste0(inventor_city, ", ", ifelse(is.na(inventor_state), inventor_country, inventor_state))) %>%
+    dplyr::mutate(document_number = as.numeric(document_number))
+
+  # document_number is a string in assignees and numeric in publications
+  # first assignee: min(unnested[["assignees"]]$assignee_sequence) is 1
+  first_assignees <- unnested[["assignees"]] %>%
+    dplyr::filter(assignee_sequence == 1) %>%
+    dplyr::mutate(document_number = as.numeric(document_number))
+
+  publications <- unnested[["publications"]] %>%
+    dplyr::inner_join(first_inventors,  by = "document_number") %>%
+    dplyr::left_join(first_assignees,  by = "document_number")
+
+  dim(publications)
+  colnames(publications)
+```
+
+There's more information on the patentsview R package [here](https://github.com/ropensci/patentsview) (not yet updated for the new verion)
 

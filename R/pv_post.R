@@ -1,95 +1,54 @@
-#' @title Queries PatentsView API by CPC
+#' @title Posts to the Patentsview API by CPC
 #'
-#' @description This function formats and submits a POST call to the PatentsView Patents API endpoint
+#' @description This function formats and submits a POST call to the PatentsView Patent API endpoint
 #'
-#' @param page
+#' @param start_date
 #'
-#' @return a data frame of 27 fields
+#' @returns what we got back from the patentsview API
 #'
-#' @examples clean_patents(pvresult)
-#'
+#' @examples 
+#' result <- pv_post("2024-01-01", cpc="G16H")
+#' colnames(result)
 #' @export
 
 ########################################
-########### patent_post() ##############
+########### pv_post() ##################
 ########################################
-pv_post <- function(page,start_date,env = parent.frame(),...) {
-  # get first page of results
-  request <- httr::POST(url="https://api.patentsview.org/patents/query",
-                        body=list(
-                          q=list(
-                            "_and"=c( # AND boolean operator to wrap around all three query components
-                              list( # need these unnamed lists for whatever reason to make sure the wrapper does [] correctly
-                                list( # greater than date criteria
-                                  "_gte"=list(
-                                    app_date=start_date # all patents granted since Jan 2000
-                                  )
-                                )
-                              ),
-                              list(
-                                list(
-                                  cpc_section_id=substr(env$cpc, 1, 1)
-                                )
-                              ),
-                              list(
-                                list(
-                                  cpc_subsection_id=substr(env$cpc, 1, 3)
-                                )
-                              ),
-                              list( # CPC category
-                                list(
-                                  cpc_group_id=env$cpc #
-                                )
-                              ),
-                              list(
-                                list(
-                                  assignee_lastknown_country="US" # only from US applicants
-                                )
-                              )
-                            )
-                          ),
-                          f=c("patent_id", # hard-code the fields that will come back by default
-                              "patent_number",
-                              "patent_title",
-                              "patent_abstract",
-                              "patent_date",
-                              "patent_year",
-                              "patent_firstnamed_inventor_city",
-                              "patent_firstnamed_inventor_state",
-                              "patent_firstnamed_inventor_latitude",
-                              "patent_firstnamed_inventor_longitude",
-                              "patent_num_cited_by_us_patents",
-                              "patent_num_combined_citations",
-                              "patent_processing_time",
-                              "patent_type",
-                              "govint_contract_award_number",
-                              "govint_raw_statement",
-                              "patent_num_cited_by_us_patents",
-                              "patent_num_us_patent_citations",
-                              # assignee info
-                              "patent_firstnamed_assignee_id", # from patents table
-                              "patent_firstnamed_assignee_city", # from patents table
-                              "patent_firstnamed_assignee_state", # from patents table
-                              "patent_firstnamed_assignee_latitude", # from patents table
-                              "patent_firstnamed_assignee_longitude", # from patents table
-                              "assignee_organization", # from assignees table, requires unnesting
-                              "assignee_type", # from assignees table, requires unnesting
-                              "assignee_total_num_patents", # from assignees table, requires unnesting
-                              "assignee_first_seen_date",
-                              "assignee_last_seen_date",
-                              # application info
-                              "app_date","app_id",
-                              # cpc info
-                              "cpc_group_id","cpc_group_title"),
-                          o=list("page"=page,
-                                 "per_page"=1000
-                                 )
-                        ),
-                        encode = "json")
-  # parse first page of results
-  results <- fromJSON(content(request,
-                              as = "text",
-                              encoding = "UTF-8"),
-                      flatten = T)
+pv_post <- function(start_date, cpc, env = parent.frame(),...) {
+
+  # any assignee or just the first one?
+  query <- patentsview::with_qfuns(
+    and(
+      gte(patent_earliest_application_date = start_date),
+      eq(cpc_current.cpc_subclass_id = "B62K"),
+      eq(assignees.assignee_country = "US")
+    )
+  )
+
+  fields <- patentsview::get_fields("patent", group = c("patents", "inventors", "assignees", "cpc_current"))
+
+  # get all pages of results, the R package will retry if throttled by the API
+  results <- patentsview::search_pv(query, fields = fields, all_pages = TRUE, method = "POST", ...)
+
   return(results)
+}
+
+
+#' @noRd
+pv_app_post <- function(start_date = "2001-01-01", cpc, env = parent.frame(),...) {
+  # build the query and list of fields we want back from the API
+  # any assignee or first assignee?
+  query <- patentsview::with_qfuns(
+    and(
+      gte(publication_date = start_date), # all patents applied for since start_date
+      eq(cpc_at_issue.cpc_subclass_id = cpc),
+      eq(assignees.assignee_country = "US") # only from US applicants
+    )
+  )
+
+  fields <- patentsview::get_fields("publication", groups = c("publications", "assignees", "inventors", "cpc_at_issue"))
+
+  # get all pages of results, the R package will retry if throttled by the API
+  results <- patentsview::search_pv(query, endpoint = "publication", fields = fields, all_pages = TRUE, method = "POST", ...)
+  return (results)
 }

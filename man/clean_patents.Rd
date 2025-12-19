@@ -2,20 +2,20 @@
 % Please edit documentation in R/clean_patents.R
 \name{clean_patents}
 \alias{clean_patents}
-\title{Queries PatentsView API by CPC}
+\title{Flattens the data returned by the PatentsView API}
 \usage{
 clean_patents(pvresult)
 }
 \arguments{
-\item{pvresult}{}
+\item{pvresult}{The return from pv_post()1}
 }
 \value{
-a data frame of 27 fields
+a data frame of 38 fields
 }
 \description{
 This function formats the returned JSON objects into flat data frames
 }
 \examples{
+pvresult <- pv_post("2024-01-01", cpc="G16H")
 clean_patents(pvresult)
-
 }

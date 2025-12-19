@@ -2,20 +2,20 @@
 % Please edit documentation in R/pv_post.R
 \name{pv_post}
 \alias{pv_post}
-\title{Queries PatentsView API by CPC}
+\title{Posts to the Patentsview API by CPC}
 \usage{
-pv_post(page, start_date, env = parent.frame(), ...)
+pv_post(start_date, cpc, env = parent.frame(), ...)
 }
 \arguments{
-\item{page}{}
+\item{start_date}{}
 }
 \value{
-a data frame of 27 fields
+what we got back from the patentsview API
 }
 \description{
-This function formats and submits a POST call to the PatentsView Patents API endpoint
+This function formats and submits a POST call to the PatentsView Patent API endpoint
 }
 \examples{
-clean_patents(pvresult)
-
+result <- pv_post("2024-01-01", cpc="G16H")
+colnames(result)
 }

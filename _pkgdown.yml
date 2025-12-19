@@ -1,0 +1,17 @@
+title: patentsview2
+
+reference:
+  - title: The API client
+    contents:
+    - patents_view
+  - title: low level functions
+    contents:
+    - pv_post
+    - clean_patents
+  - title: data frames
+    contents:
+    - cpc_subgroups
+    - cpc_subclasses
+  - title: imported from magrittr
+    contents:
+    - "%>%"
